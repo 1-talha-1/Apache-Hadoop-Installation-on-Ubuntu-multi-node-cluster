@@ -1,4 +1,6 @@
-# Comprehensive Hadoop Cluster Deployment Guide for Ubuntu
+# Hadoop Cluster Deployment Guide for Ubuntu
+## 1 NameNode and 3 DataNodes
+![alt text](./images/image.png)
 
 ## Preparation Phase
 
@@ -296,8 +298,7 @@ hdfs dfs -mkdir /test
 hdfs dfs -touchz /test/testfile.txt
 ```
 
-![](/home/magician/snap/marktext/9/.config/marktext/images/2025-01-26-01-18-40-image.png) 
-
+![Alt text](./images/report.png)
 ### Step 15: Basic MapReduce Test
 
 ```bash
@@ -305,9 +306,8 @@ hdfs dfs -touchz /test/testfile.txt
 yarn jar $HADOOP_HOME/share/hadoop/mapreduce/hadoop-mapreduce-examples-*.jar pi 10 100
 ```
 
-![](/home/magician/snap/marktext/9/.config/marktext/images/2025-01-26-01-25-54-image.png)
-
-![](/home/magician/snap/marktext/9/.config/marktext/images/2025-01-26-01-25-37-image.png)
+![Alt text](./images/map-reduce.png)
+![Alt text](./images/map-reduce-output.png)
 
 ## 
 
@@ -317,11 +317,11 @@ yarn jar $HADOOP_HOME/share/hadoop/mapreduce/hadoop-mapreduce-examples-*.jar pi 
 
 View the details on NameNode IP with browser
 
-http://<hadoop-namenode>:9870
+http://hadoop-namenode:9870
 
-![](/home/magician/snap/marktext/9/.config/marktext/images/2025-01-26-01-21-05-image.png)
+![Alt text](./images/summary.png)
+![Alt text](./images/histogram.png)
 
-![](/home/magician/snap/marktext/9/.config/marktext/images/2025-01-26-01-22-26-image.png)
 
 1. Install monitoring tools
    
@@ -359,8 +359,6 @@ export YARN_HEAPSIZE=4096    # 4 GB
    #DataNode Logs
    tail -f $HADOOP_HOME/logs/hadoop-*-datanode-*.log
    ```
-
-
 
 2. Common Startup Issues
 - Verify all nodes can resolve hostnames
