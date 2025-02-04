@@ -1,0 +1,141 @@
+# generate_stock_data.py
+#!/usr/bin/env python3
+import csv
+import random
+from datetime import datetime, timedelta
+
+def generate_stock_data():
+    stocks = ['AAPL', 'GOOGL', 'MSFT', 'AMZN', 'META', 'TSLA', 'NVDA', 'AMD']
+    
+    with open('stock_data.csv', 'w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(['date', 'symbol', 'open', 'high', 'low', 'close', 'volume'])
+        
+        base_date = datetime(2023, 1, 1)
+        for _ in range(1000):
+            stock = random.choice(stocks)
+            date = base_date + timedelta(days=random.randint(0, 365))
+            base_price = random.uniform(100, 1000)
+            writer.writerow([
+                date.strftime('%Y-%m-%d'),
+                stock,
+                round(base_price, 2),
+                round(base_price * random.uniform(1, 1.1), 2),
+                round(base_price * random.uniform(0.9, 1), 2),
+                round(base_price * random.uniform(0.9, 1.1), 2),
+                random.randint(100000, 10000000)
+            ])
+
+if __name__ == "__main__":
+    generate_stock_data()
+    print("Stock data generated successfully!")
+
+# mapper.py
+#!/usr/bin/env python3
+import sys
+import csv
+from io import StringIO
+
+def parse_csv_line(line):
+    try:
+        if line.startswith('date'):
+            return None
+        
+        csv_reader = csv.reader(StringIO(line))
+        return next(csv_reader)
+    except Exception as e:
+        sys.stderr.write(f"Error parsing line: {line}, Error: {str(e)}\n")
+        return None
+
+for line in sys.stdin:
+    try:
+        row = parse_csv_line(line.strip())
+        if row:
+            date, symbol, open_price, high, low, close, volume = row
+            print(f'{symbol}\t{close},{volume}')
+    except Exception as e:
+        sys.stderr.write(f"Error processing line: {line}, Error: {str(e)}\n")
+
+# reducer.py
+#!/usr/bin/env python3
+import sys
+
+def process_values():
+    current_symbol = None
+    total_volume = 0
+    price_sum = 0
+    count = 0
+
+    for line in sys.stdin:
+        try:
+            symbol, values = line.strip().split('\t')
+            close, volume = values.split(',')
+            
+            if current_symbol != symbol:
+                if current_symbol:
+                    avg_price = price_sum / count if count > 0 else 0
+                    print(f'{current_symbol}\t{avg_price:.2f}\t{total_volume}')
+                current_symbol = symbol
+                total_volume = 0
+                price_sum = 0
+                count = 0
+            
+            price_sum += float(close)
+            total_volume += int(volume)
+            count += 1
+            
+        except Exception as e:
+            sys.stderr.write(f"Error processing line: {line}, Error: {str(e)}\n")
+            continue
+
+    if current_symbol and count > 0:
+        avg_price = price_sum / count
+        print(f'{current_symbol}\t{avg_price:.2f}\t{total_volume}')
+
+if __name__ == "__main__":
+    process_values()
+
+# run_analysis.sh
+#!/bin/bash
+
+# Exit on error
+set -e
+
+echo "Starting stock market analysis..."
+
+# Set paths
+HADOOP_STREAMING_JAR=$(find $HADOOP_HOME -name "hadoop-streaming*.jar" | head -1)
+INPUT_DIR="/user/stock/input"
+OUTPUT_DIR="/user/stock/output"
+
+echo "Generating stock data..."
+python3 generate_stock_data.py
+
+echo "Making scripts executable..."
+chmod +x mapper.py reducer.py
+
+echo "Creating HDFS directories..."
+hdfs dfs -mkdir -p $INPUT_DIR
+
+echo "Uploading data to HDFS..."
+hdfs dfs -put -f stock_data.csv $INPUT_DIR/
+
+echo "Removing old output directory if exists..."
+hdfs dfs -rm -r -f $OUTPUT_DIR
+
+echo "Running MapReduce job..."
+hadoop jar $HADOOP_STREAMING_JAR \
+    -files mapper.py,reducer.py \
+    -mapper "python3 mapper.py" \
+    -reducer "python3 reducer.py" \
+    -input $INPUT_DIR/* \
+    -output $OUTPUT_DIR
+
+echo "Analysis completed! Results:"
+echo "Symbol  Avg_Price  Total_Volume"
+echo "--------------------------------"
+hdfs dfs -cat $OUTPUT_DIR/part-*
+
+# Clean up
+echo "Cleaning up local files..."
+rm -f stock_data.csv

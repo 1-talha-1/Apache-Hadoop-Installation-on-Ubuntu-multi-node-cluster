@@ -1,5 +1,7 @@
 # Hadoop Cluster Deployment Guide for Ubuntu
+
 ## 1 NameNode and 3 DataNodes
+
 ![alt text](./images/image.png)
 
 ## Preparation Phase
@@ -299,6 +301,7 @@ hdfs dfs -touchz /test/testfile.txt
 ```
 
 ![Alt text](./images/report.png)
+
 ### Step 15: Basic MapReduce Test
 
 ```bash
@@ -321,7 +324,6 @@ http://hadoop-namenode:9870
 
 ![Alt text](./images/summary.png)
 ![Alt text](./images/histogram.png)
-
 
 1. Install monitoring tools
    
